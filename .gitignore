@@ -1,0 +1,32 @@
+# Dependencias
+node_modules/
+
+# Compilados
+dist/
+build/
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cobertura y caché
+coverage/
+.cache/
+.vite/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+
+# Script local
+iniciar.bat
