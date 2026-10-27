@@ -149,6 +149,40 @@ r.post('/productos', wrap(async (req, res) => {
   res.status(201).json({ id });
 }));
 
+r.get('/productos/:id', wrap(async (req, res) => {
+  const id = entero(req.params.id, 'El id');
+  const [[p]] = await pool.query(
+    `SELECT p.id, p.denominacion, p.numero_serie, p.modelo, p.marca, p.potencia,
+            u.nombre AS unidad_medida, p.estado, p.stock_actual, p.stock_minimo
+     ${PROD_FROM} WHERE p.id = ? AND p.activo = 1`, [id]);
+  if (!p) throw new HttpError(404, 'El producto no existe');
+  res.json(p);
+}));
+
+// Edita los datos descriptivos. El stock NO se toca aquí: solo cambia con movimientos.
+r.put('/productos/:id', wrap(async (req, res) => {
+  const id = entero(req.params.id, 'El id');
+  const b = req.body;
+  const denominacion = texto(b.denominacion);
+  if (!denominacion) throw new HttpError(400, 'La denominación es obligatoria');
+  if (!['Nuevo', 'Usado'].includes(b.estado)) throw new HttpError(400, 'Estado inválido');
+  const minimo = Number(b.stock_minimo ?? 0);
+  if (!Number.isInteger(minimo) || minimo < 0) throw new HttpError(400, 'El stock mínimo debe ser un entero de 0 o más');
+  const unidad = (texto(b.unidad_medida) || 'UN').toUpperCase();
+
+  await tx(async (c) => {
+    await c.query('INSERT IGNORE INTO unidades_medida (nombre) VALUES (?)', [unidad]);
+    const [[u]] = await c.query('SELECT id FROM unidades_medida WHERE nombre = ?', [unidad]);
+    const [upd] = await c.query(
+      `UPDATE productos SET denominacion = ?, numero_serie = ?, modelo = ?, marca = ?, potencia = ?,
+              unidad_medida_id = ?, estado = ?, stock_minimo = ?
+       WHERE id = ? AND activo = 1`,
+      [denominacion, texto(b.numero_serie), texto(b.modelo), texto(b.marca), texto(b.potencia), u.id, b.estado, minimo, id]);
+    if (!upd.affectedRows) throw new HttpError(404, 'El producto no existe');
+  });
+  res.json({ ok: true });
+}));
+
 /* ---------- movimientos ---------- */
 r.post('/movimientos/entrada', wrap(async (req, res) => {
   const b = req.body;
