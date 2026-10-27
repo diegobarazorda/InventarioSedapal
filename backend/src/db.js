@@ -5,7 +5,7 @@ export const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || 'inventario',
+  database: process.env.DB_NAME || 'inventario_sedapal',
   charset: 'utf8mb4',
   dateStrings: true, // fechas como texto 'YYYY-MM-DD', sin problemas de zona horaria
   connectionLimit: 10,
