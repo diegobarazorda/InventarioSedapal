@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useGet } from '../api.js';
 import { Pager, StockBadge, Table } from '../ui.jsx';
 
@@ -12,6 +13,7 @@ const columns = [
   { key: 'estado', header: 'Estado' },
   { key: 'stock_actual', header: 'Stock', render: (r) => <StockBadge n={r.stock_actual} /> },
   { key: 'fecha_entrada', header: 'Fecha entrada' },
+  { key: 'acciones', header: '', render: (r) => <Link className="btn sec" to={`/productos/${r.id}/editar`}>Editar</Link> },
 ];
 
 export default function Vista() {
@@ -23,7 +25,6 @@ export default function Vista() {
   return (
     <>
       <h2>Vista general</h2>
-      <p className="page-sub">Consulta el stock actual y los datos de cada producto registrado.</p>
       <div className="filtros">
         <input placeholder="Buscar por denominación, marca, modelo, serie…" value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
