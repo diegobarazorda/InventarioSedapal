@@ -11,6 +11,11 @@ const entero = (v, campo) => {
   if (!Number.isInteger(n) || n <= 0) throw new HttpError(400, `${campo} debe ser un entero mayor a 0`);
   return n;
 };
+const enteroNoNegativo = (v, campo) => {
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 0) throw new HttpError(400, `${campo} debe ser un entero de 0 o más`);
+  return n;
+};
 const texto = (v) => String(v ?? '').trim() || null;
 const fechaISO = (v) => {
   if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new HttpError(400, 'Fecha inválida');
@@ -159,15 +164,15 @@ r.get('/productos/:id', wrap(async (req, res) => {
   res.json(p);
 }));
 
-// Edita los datos descriptivos. El stock NO se toca aquí: solo cambia con movimientos.
+// Edita los datos del producto, incluido el stock actual (ajuste manual).
 r.put('/productos/:id', wrap(async (req, res) => {
   const id = entero(req.params.id, 'El id');
   const b = req.body;
   const denominacion = texto(b.denominacion);
   if (!denominacion) throw new HttpError(400, 'La denominación es obligatoria');
   if (!['Nuevo', 'Usado'].includes(b.estado)) throw new HttpError(400, 'Estado inválido');
-  const minimo = Number(b.stock_minimo ?? 0);
-  if (!Number.isInteger(minimo) || minimo < 0) throw new HttpError(400, 'El stock mínimo debe ser un entero de 0 o más');
+  const minimo = enteroNoNegativo(b.stock_minimo ?? 0, 'El stock mínimo');
+  const stock = enteroNoNegativo(b.stock_actual, 'El stock actual');
   const unidad = (texto(b.unidad_medida) || 'UN').toUpperCase();
 
   await tx(async (c) => {
@@ -175,9 +180,9 @@ r.put('/productos/:id', wrap(async (req, res) => {
     const [[u]] = await c.query('SELECT id FROM unidades_medida WHERE nombre = ?', [unidad]);
     const [upd] = await c.query(
       `UPDATE productos SET denominacion = ?, numero_serie = ?, modelo = ?, marca = ?, potencia = ?,
-              unidad_medida_id = ?, estado = ?, stock_minimo = ?
+              unidad_medida_id = ?, estado = ?, stock_minimo = ?, stock_actual = ?
        WHERE id = ? AND activo = 1`,
-      [denominacion, texto(b.numero_serie), texto(b.modelo), texto(b.marca), texto(b.potencia), u.id, b.estado, minimo, id]);
+      [denominacion, texto(b.numero_serie), texto(b.modelo), texto(b.marca), texto(b.potencia), u.id, b.estado, minimo, stock, id]);
     if (!upd.affectedRows) throw new HttpError(404, 'El producto no existe');
   });
   res.json({ ok: true });
