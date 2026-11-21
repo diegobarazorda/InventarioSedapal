@@ -23,11 +23,11 @@ export default function Editar() {
     try {
       await put('/productos/' + id, f);
       setMsg({ ok: true, t: 'Producto actualizado correctamente' });
-      setTimeout(() => navigate('/vista'), 800);
+      setTimeout(() => navigate('/stock/vista'), 800);
     } catch (err) { setMsg({ ok: false, t: err.message }); }
   }
 
-  if (!f) return <><Msg msg={msg} /><Link className="enlace" to="/vista">‹ Volver a Vista general</Link></>;
+  if (!f) return <><Msg msg={msg} /><Link className="enlace" to="/stock/vista">‹ Volver a Vista general</Link></>;
 
   return (
     <>
@@ -60,7 +60,7 @@ export default function Editar() {
         </div>
         <div className="acciones">
           <button className="btn">Guardar cambios</button>
-          <Link className="btn sec" to="/vista">Cancelar</Link>
+          <Link className="btn sec" to="/stock/vista">Cancelar</Link>
         </div>
       </form>
       <Msg msg={msg} />

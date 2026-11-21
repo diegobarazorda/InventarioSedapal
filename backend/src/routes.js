@@ -188,6 +188,109 @@ r.put('/productos/:id', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+/* ---------- activos fijos (registro AF del SAP) ---------- */
+const AF_COLS = `id, numero, activo_fijo, nro_inventario, denominacion, marca, serie, modelo, ceco,
+  emplazamiento, local, nro_personal, nombre_personal, nota_inventario, verificado`;
+const verificacion = (v) => {
+  if (v !== 'SI' && v !== 'NO') throw new HttpError(400, 'La verificación debe ser SI o NO');
+  return v;
+};
+
+r.get('/activos', wrap(async (req, res) => {
+  const q = req.query, w = ['1=1'], a = [];
+  if (q.search) {
+    const s = `%${q.search}%`;
+    w.push(`(activo_fijo LIKE ? OR nro_inventario LIKE ? OR denominacion LIKE ? OR marca LIKE ? OR serie LIKE ?
+      OR modelo LIKE ? OR nombre_personal LIKE ? OR local LIKE ?)`);
+    a.push(s, s, s, s, s, s, s, s);
+  }
+  if (q.verificado === 'SI' || q.verificado === 'NO') { w.push('verificado = ?'); a.push(q.verificado); }
+  const where = w.join(' AND ');
+  const { limit, page, offset } = paginar(q);
+  const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM activos_fijos WHERE ${where}`, a);
+  const [[{ verificados }]] = await pool.query(
+    "SELECT COALESCE(SUM(verificado = 'SI'), 0) AS verificados FROM activos_fijos");
+  const [rows] = await pool.query(
+    // "orden": correlativo 1, 2, 3… según el orden del Excel (el N° original queda solo como dato interno)
+    `SELECT * FROM (SELECT ${AF_COLS}, ROW_NUMBER() OVER (ORDER BY numero, id) AS orden FROM activos_fijos) t
+     WHERE ${where} ORDER BY orden LIMIT ? OFFSET ?`,
+    [...a, limit, offset]);
+  res.json({ rows, total, page, limit, verificados: Number(verificados) });
+}));
+
+r.get('/activos/resumen', wrap(async (_q, res) => {
+  const [[k]] = await pool.query(
+    `SELECT COUNT(*) AS total, COALESCE(SUM(verificado = 'SI'), 0) AS verificados,
+            COALESCE(SUM(nro_inventario IS NOT NULL), 0) AS con_inventario FROM activos_fijos`);
+  const [porResponsable] = await pool.query(
+    `SELECT nombre_personal, COUNT(*) AS total, SUM(verificado = 'SI') AS verificados
+     FROM activos_fijos GROUP BY nombre_personal ORDER BY total DESC`);
+  const [porNota] = await pool.query(
+    `SELECT nota_inventario, COUNT(*) AS total FROM activos_fijos
+     GROUP BY nota_inventario ORDER BY total DESC`);
+  const CONTEOS = ['total', 'verificados', 'con_inventario'];
+  const num = (o) => Object.fromEntries(Object.entries(o).map(([a, b]) => [a, CONTEOS.includes(a) ? Number(b) : b]));
+  res.json({
+    kpis: num(k),
+    porResponsable: porResponsable.map((r, i) => ({ id: i, ...num(r) })),
+    porNota: porNota.map((r, i) => ({ id: i, ...num(r) })),
+  });
+}));
+
+// Valores ya usados, para sugerir en el formulario de edición
+r.get('/activos/opciones', wrap(async (_q, res) => {
+  const [notas] = await pool.query(
+    'SELECT DISTINCT nota_inventario AS v FROM activos_fijos WHERE nota_inventario IS NOT NULL ORDER BY v');
+  const [personal] = await pool.query(
+    `SELECT nro_personal, nombre_personal FROM activos_fijos WHERE nombre_personal IS NOT NULL
+     GROUP BY nro_personal, nombre_personal ORDER BY nombre_personal`);
+  res.json({ notas: notas.map((n) => n.v), personal });
+}));
+
+r.get('/activos/:id', wrap(async (req, res) => {
+  const id = entero(req.params.id, 'El id');
+  const [[row]] = await pool.query(`SELECT ${AF_COLS} FROM activos_fijos WHERE id = ?`, [id]);
+  if (!row) throw new HttpError(404, 'El activo fijo no existe');
+  res.json(row);
+}));
+
+// Edición completa de un activo fijo (todos los campos)
+const AF_EDITABLES = [
+  ['activo_fijo', 30, 'El código de activo fijo es obligatorio'], ['nro_inventario', 50], ['denominacion', 255, 'La denominación es obligatoria'],
+  ['marca', 100], ['serie', 100], ['modelo', 100], ['ceco', 20], ['emplazamiento', 150], ['local', 50],
+  ['nro_personal', 20], ['nombre_personal', 150], ['nota_inventario', 100],
+];
+r.put('/activos/:id', wrap(async (req, res) => {
+  const id = entero(req.params.id, 'El id');
+  const b = req.body;
+  const valores = AF_EDITABLES.map(([k, max, obligatorio]) => {
+    const v = texto(b[k]);
+    if (obligatorio && !v) throw new HttpError(400, obligatorio);
+    if (v && v.length > max) throw new HttpError(400, `El campo ${k.replace('_', ' ')} admite hasta ${max} caracteres`);
+    return v;
+  });
+  const numero = b.numero === '' || b.numero == null ? null : enteroNoNegativo(b.numero, 'El N°');
+  const [upd] = await pool.query(
+    `UPDATE activos_fijos SET numero = ?, ${AF_EDITABLES.map(([k]) => `${k} = ?`).join(', ')}, verificado = ?
+     WHERE id = ?`, [numero, ...valores, verificacion(b.verificado), id]);
+  if (!upd.affectedRows) throw new HttpError(404, 'El activo fijo no existe');
+  const [[row]] = await pool.query(`SELECT ${AF_COLS} FROM activos_fijos WHERE id = ?`, [id]);
+  res.json(row);
+}));
+
+// Actualiza solo los campos enviados: nro_inventario y/o verificado
+r.patch('/activos/:id', wrap(async (req, res) => {
+  const id = entero(req.params.id, 'El id');
+  const b = req.body, sets = [], a = [];
+  if ('nro_inventario' in b) { sets.push('nro_inventario = ?'); a.push(texto(b.nro_inventario)); }
+  if ('verificado' in b) { sets.push('verificado = ?'); a.push(verificacion(b.verificado)); }
+  if (!sets.length) throw new HttpError(400, 'Nada que actualizar');
+  const [upd] = await pool.query(`UPDATE activos_fijos SET ${sets.join(', ')} WHERE id = ?`, [...a, id]);
+  if (!upd.affectedRows) throw new HttpError(404, 'El activo fijo no existe');
+  const [[row]] = await pool.query(`SELECT ${AF_COLS} FROM activos_fijos WHERE id = ?`, [id]);
+  res.json(row);
+}));
+
 /* ---------- movimientos ---------- */
 r.post('/movimientos/entrada', wrap(async (req, res) => {
   const b = req.body;

@@ -25,6 +25,10 @@ InventarioSedapal/
 
 ## Funcionalidades
 
+Al abrir la aplicación se elige uno de los dos inventarios, cada uno con su propio menú (botón **Cambiar inventario** para volver):
+
+### 1. Inventario de productos (`/stock`)
+
 - **Inicio** - Dashboard con resumen de inventario
 - **Ingreso de productos** - Registro de nuevos activos con sus características
 - **Reabastecer stock** - Agregar unidades a productos existentes
@@ -33,6 +37,11 @@ InventarioSedapal/
 - **Editar producto** - Búsqueda y edición de productos existentes
 - **Reportes** - Generación de reportes en Excel
 - **Historial** - Consulta de entradas y salidas con filtros por fecha, tipo y búsqueda
+
+### 2. Inventario de activos fijos (`/activos`)
+
+- **Resumen** - Total de activos, verificados, pendientes y avance por responsable (PTAR Santa Clara)
+- **Activos fijos** - Registro importado del Excel (hoja "Registro AF del SAP") con N° de inventario editable, verificación SI/NO y botón **Editar** para modificar todos los campos
 
 ## Requisitos
 
@@ -71,6 +80,14 @@ DB_PASSWORD=tu_contraseña
 DB_NAME=inventario_sedapal
 CORS_ORIGIN=http://localhost:5173
 ```
+
+Importar los activos fijos del Excel (`datos-inventario.xlsx`, hoja "Registro AF del SAP"). Crea la tabla `activos_fijos` si no existe:
+
+```bash
+npm run importar-activos
+```
+
+Para volver a cargar el Excel desde cero (borra N° de inventario y verificaciones guardadas): `npm run importar-activos -- --reemplazar`.
 
 Iniciar el servidor:
 

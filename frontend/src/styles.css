@@ -121,6 +121,12 @@ aside a.active svg { color: #6fe3a3; opacity: 1; }
   line-height: 1.5;
   position: relative;
 }
+aside a.cambiar {
+  margin-top: auto;
+  border: 1px solid rgba(255, 255, 255, .18);
+  font-size: 13px;
+}
+aside a.cambiar + .side-foot { margin-top: 14px; }
 .side-foot b { color: rgba(255, 255, 255, .78); font-weight: 600; }
 
 /* ---------- Main ---------- */
@@ -328,6 +334,7 @@ th {
 }
 tbody tr { transition: background .12s ease; }
 tbody tr:hover td { background: #f4f9fd; }
+tbody tr.fila-accion { cursor: pointer; user-select: none; }
 .vacio { text-align: center; color: var(--mute); padding: 28px; }
 
 .badge {
@@ -344,6 +351,64 @@ tbody tr:hover td { background: #f4f9fd; }
 
 .pager { display: flex; gap: 12px; align-items: center; justify-content: flex-end; margin-top: 14px; color: var(--mute); font-size: 13px; }
 .pager .btn { padding: 7px 14px; }
+
+/* ---------- Celdas editables ---------- */
+.tabla-activos table { min-width: 1600px; }
+.tabla-activos th { white-space: nowrap; }
+.tabla-activos td { word-break: normal; }
+.sino { display: inline-flex; white-space: nowrap; border: 1px solid #c6d8ea; border-radius: 999px; overflow: hidden; }
+.sino button {
+  border: 0;
+  background: #fff;
+  color: var(--mute);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 11px;
+  cursor: pointer;
+}
+.sino button + button { border-left: 1px solid #c6d8ea; }
+.sino button.on.si { background: var(--okbg); color: var(--ok); }
+.sino button.on.no { background: var(--badbg); color: var(--bad); }
+.sino button:focus-visible { outline: 2px solid var(--pri); outline-offset: -2px; }
+
+.enlace { color: var(--pri); font-weight: 600; text-decoration: none; }
+.enlace:hover { text-decoration: underline; }
+
+.avance { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+.avance > span { flex: 1; height: 6px; border-radius: 99px; background: var(--pri-soft); overflow: hidden; display: block; position: relative; }
+.avance > span::before { content: ""; position: absolute; inset: 0; width: inherit; background: var(--green); border-radius: 99px; }
+.avance em { font-style: normal; font-size: 12px; color: var(--mute); width: 34px; text-align: right; }
+
+/* ---------- Selector de inventario ---------- */
+.selector { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 16px; }
+.selector header { text-align: center; margin-bottom: 32px; }
+.selector header img { max-height: 64px; margin-bottom: 14px; }
+.selector h1 { margin: 0; font-size: 28px; letter-spacing: -.01em; color: var(--pri-dark); }
+.selector header p { margin: 6px 0 0; color: var(--mute); }
+.selector-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 340px)); gap: 22px; }
+.selector-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px 26px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(15, 40, 70, .04), 0 18px 40px -28px rgba(15, 40, 70, .5);
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  animation: fadeUp .28s ease both;
+}
+.selector-card:hover, .selector-card:focus-visible { transform: translateY(-3px); border-color: var(--pri); box-shadow: 0 1px 2px rgba(15, 40, 70, .04), 0 24px 44px -26px rgba(0, 90, 156, .55); }
+.selector-card b { font-size: 18px; color: var(--pri-dark); }
+.selector-card > span:not(.selector-ico):not(.selector-ir) { color: var(--mute); font-size: 13.5px; }
+.selector-ico { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: var(--pri-soft); color: var(--pri); }
+.selector-card:nth-child(2) .selector-ico { background: var(--okbg); color: var(--green-dark); }
+.selector-ico svg { width: 28px; height: 28px; }
+.selector-ir { margin-top: 6px; color: var(--pri); font-weight: 700; font-size: 13.5px; }
+@media (max-width: 720px) { .selector-opciones { grid-template-columns: 1fr; width: 100%; max-width: 380px; } }
 
 /* ---------- Messages ---------- */
 .msg {

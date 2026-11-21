@@ -20,6 +20,8 @@ export const post = (url, body) =>
   pedir('/api' + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 export const put = (url, body) =>
   pedir('/api' + url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+export const patch = (url, body) =>
+  pedir('/api' + url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 export const urlExcel = (tipo, params) => '/api/reportes/' + tipo + qs({ ...params, formato: 'xlsx' });
 export const hoy = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD en hora local
 

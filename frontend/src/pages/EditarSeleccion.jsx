@@ -14,7 +14,7 @@ const columns = [
   { key: 'estado', header: 'Estado' },
   { key: 'stock_actual', header: 'Stock', render: (r) => <StockBadge n={r.stock_actual} /> },
   { key: 'fecha_entrada', header: 'Fecha entrada' },
-  { key: 'acciones', header: '', render: (r) => <Link className="btn sec" to={`/productos/${r.id}/editar`}>Editar</Link> },
+  { key: 'acciones', header: '', render: (r) => <Link className="btn sec" to={`/stock/productos/${r.id}/editar`}>Editar</Link> },
 ];
 
 export default function EditarSeleccion() {
