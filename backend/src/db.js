@@ -30,3 +30,18 @@ export async function tx(fn) {
     c.release();
   }
 }
+
+// Agrega las columnas de foto a activos_fijos si la tabla aún no las tiene (bases creadas antes)
+export async function migrar() {
+  const [[{ hay }]] = await pool.query(
+    `SELECT COUNT(*) AS hay FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = 'activos_fijos' AND column_name = 'foto'`);
+  if (hay) return;
+  const [[{ tabla }]] = await pool.query(
+    `SELECT COUNT(*) AS tabla FROM information_schema.tables
+     WHERE table_schema = DATABASE() AND table_name = 'activos_fijos'`);
+  if (!tabla) return;
+  await pool.query(`ALTER TABLE activos_fijos
+    ADD COLUMN foto MEDIUMBLOB DEFAULT NULL, ADD COLUMN foto_tipo VARCHAR(30) DEFAULT NULL`);
+  console.log('Columnas de foto agregadas a activos_fijos');
+}

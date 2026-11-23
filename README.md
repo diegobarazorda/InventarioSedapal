@@ -40,8 +40,8 @@ Al abrir la aplicación se elige uno de los dos inventarios, cada uno con su pro
 
 ### 2. Inventario de activos fijos (`/activos`)
 
-- **Resumen** - Total de activos, verificados, pendientes y avance por responsable (PTAR Santa Clara)
-- **Activos fijos** - Registro importado del Excel (hoja "Registro AF del SAP") con N° de inventario editable, verificación SI/NO y botón **Editar** para modificar todos los campos
+- **Ficha de activo** - Única vista de trabajo: muestra un activo a la vez. Se busca por N° y se recorre con las flechas (primero, anterior, siguiente, último). Con **Editar registro** los campos se editan ahí mismo, **Agregar nuevo registro** crea uno al final de la lista y **Eliminar registro** lo borra (pide confirmación); también permite marcar la verificación y agregar/cambiar/quitar una **foto** (se guarda en la base de datos)
+- **Reportes** - Activos filtrados por verificación, responsable, nota de inventario y foto; en pantalla o en Excel
 
 ## Requisitos
 

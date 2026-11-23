@@ -10,9 +10,8 @@ import Reportes from './pages/Reportes.jsx';
 import Historial from './pages/Historial.jsx';
 import Editar from './pages/Editar.jsx';
 import EditarSeleccion from './pages/EditarSeleccion.jsx';
-import ActivosResumen from './pages/ActivosResumen.jsx';
-import VistaActivos from './pages/VistaActivos.jsx';
-import EditarActivo from './pages/EditarActivo.jsx';
+import FichaActivo from './pages/FichaActivo.jsx';
+import ReportesActivos from './pages/ReportesActivos.jsx';
 import { Icono } from './ui.jsx';
 
 // Inventario 1: productos con stock (ingresos, salidas, historial…)
@@ -29,8 +28,8 @@ const menuStock = [
 
 // Inventario 2: activos fijos del registro SAP
 const menuActivos = [
-  ['/activos', 'Resumen', 'inicio'],
-  ['/activos/listado', 'Activos fijos', 'vista'],
+  ['/activos', 'Ficha de activo', 'etiqueta'],
+  ['/activos/reportes', 'Reportes', 'reportes'],
 ];
 
 function Layout({ titulo, menu, children }) {
@@ -84,9 +83,8 @@ function InventarioActivos() {
   return (
     <Layout titulo="Inventario de activos fijos" menu={menuActivos}>
       <Routes>
-        <Route index element={<ActivosResumen />} />
-        <Route path="listado" element={<VistaActivos />} />
-        <Route path="listado/:id/editar" element={<EditarActivo />} />
+        <Route index element={<FichaActivo />} />
+        <Route path="reportes" element={<ReportesActivos />} />
         <Route path="*" element={<Navigate to="/activos" replace />} />
       </Routes>
     </Layout>

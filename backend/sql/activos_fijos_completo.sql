@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS activos_fijos (
   nombre_personal VARCHAR(150) DEFAULT NULL,
   nota_inventario VARCHAR(100) DEFAULT NULL,
   verificado ENUM('SI','NO') NOT NULL DEFAULT 'NO',
+  foto MEDIUMBLOB DEFAULT NULL,               -- foto del activo (JPG/PNG/WEBP)
+  foto_tipo VARCHAR(30) DEFAULT NULL,         -- tipo MIME de la foto
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
