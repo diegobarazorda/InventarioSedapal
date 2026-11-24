@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { del, get, patch, post, put, useGet } from '../api.js';
+import { del, get, post, put, useGet } from '../api.js';
 import { Msg } from '../ui.jsx';
 
 // [campo, etiqueta, largo máximo, obligatorio] de cada columna de la ficha
@@ -54,7 +54,7 @@ export default function FichaActivo() {
   const [a, setA] = useState(null);
   const [f, setF] = useState(null); // copia en edición (null = solo lectura)
   const [nuevo, setNuevo] = useState(false); // la edición es de un registro nuevo
-  const [buscar, setBuscar] = useState(String(n));
+  const [buscar, setBuscar] = useState(''); // código de activo fijo a buscar
   const [msg, setMsg] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -66,11 +66,11 @@ export default function FichaActivo() {
   const cargar = () => {
     setCargando(true);
     return get('/activos/ficha/' + n)
-      .then((d) => { setA(d); })
+      .then((d) => { setA(d); setBuscar(d.activo_fijo); })
       .catch((e) => { setA(null); setMsg({ ok: false, t: e.message }); })
       .finally(() => setCargando(false));
   };
-  useEffect(() => { setBuscar(String(n)); setF(null); setNuevo(false); cargar(); }, [n]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setF(null); setNuevo(false); cargar(); }, [n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Va al N° indicado (o lo recarga si ya está en él) mostrando el mensaje dado
   const ir = (x, m = null) => {
@@ -80,11 +80,16 @@ export default function FichaActivo() {
   const total = a?.total ?? 0;
   const editando = f !== null;
 
-  function enviarBusqueda(e) {
+  // Busca por código de activo fijo y abre su ficha
+  async function enviarBusqueda(e) {
     e.preventDefault();
-    const x = Number(buscar);
-    if (!Number.isInteger(x) || x < 1) return setMsg({ ok: false, t: 'Escribe un N° válido' });
-    ir(x);
+    if (!buscar.trim()) return setMsg({ ok: false, t: 'Escribe el código de activo fijo' });
+    try {
+      const { orden } = await get('/activos/buscar', { af: buscar.trim() });
+      ir(orden);
+    } catch (err) {
+      setMsg({ ok: false, t: err.message });
+    }
   }
 
   /* ----- edición en la misma ficha ----- */
@@ -158,11 +163,8 @@ Esta acción no se puede deshacer.`)) return;
     }
   }
 
-  const verificar = (v) => {
-    if (editando) return setF({ ...f, verificado: v });
-    patch(`/activos/${a.id}`, { verificado: v }).then(() => setA({ ...a, verificado: v }))
-      .catch((e) => setMsg({ ok: false, t: e.message }));
-  };
+  // La verificación solo se cambia en modo edición y se guarda con "Guardar cambios"
+  const verificar = (v) => { if (editando) setF({ ...f, verificado: v }); };
 
   const dato = ([k, label, max, req]) => (
     <label key={k} className="ficha-dato">
@@ -182,16 +184,16 @@ Esta acción no se puede deshacer.`)) return;
         <img src="/logo-sedapal.png" alt="SEDAPAL" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <div>
           <h2 className="ficha-titulo">Base de datos de activos fijos</h2>
-          <p className="hint">Escribe el N° y presiona Buscar, o recorre los registros con las flechas.</p>
+          <p className="hint">Escribe el código de activo fijo y presiona Buscar, o recorre los registros con las flechas.</p>
         </div>
       </header>
 
       <form className="ficha-buscar" onSubmit={enviarBusqueda}>
-        <label htmlFor="ficha-n">N°</label>
-        <input id="ficha-n" type="number" min="1" max={total || undefined} value={buscar} disabled={editando}
+        <label htmlFor="ficha-af">Activo fijo</label>
+        <input id="ficha-af" inputMode="numeric" autoComplete="off" placeholder="Ej. 1320654" value={buscar} disabled={editando}
           onChange={(e) => setBuscar(e.target.value)} onFocus={(e) => e.target.select()} />
         <button className="btn" disabled={editando}>Buscar</button>
-        {total > 0 && <span className="hint">de <b>{total}</b> registros</span>}
+        {a && <span className="hint">Registro N° <b>{a.orden}</b> de <b>{total}</b></span>}
       </form>
 
       <Msg msg={msg} />
@@ -208,7 +210,7 @@ Esta acción no se puede deshacer.`)) return;
               <span>Verificación</span>
               <div className="sino" role="group" aria-label="Verificación">
                 {['SI', 'NO'].map((op) => (
-                  <button key={op} type="button" aria-pressed={verificado === op}
+                  <button key={op} type="button" aria-pressed={verificado === op} disabled={!editando}
                     className={verificado === op ? 'on ' + op.toLowerCase() : ''}
                     onClick={() => verificado !== op && verificar(op)}>{op}</button>
                 ))}

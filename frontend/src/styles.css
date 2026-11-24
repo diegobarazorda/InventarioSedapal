@@ -370,6 +370,8 @@ tbody tr.fila-accion { cursor: pointer; user-select: none; }
 .sino button + button { border-left: 1px solid #c6d8ea; }
 .sino button.on.si { background: var(--okbg); color: var(--ok); }
 .sino button.on.no { background: var(--badbg); color: var(--bad); }
+.sino button:disabled { cursor: default; }
+.sino button:disabled:not(.on) { color: #a9b8c7; }
 .sino button:focus-visible { outline: 2px solid var(--pri); outline-offset: -2px; }
 
 .enlace { color: var(--pri); font-weight: 600; text-decoration: none; }
@@ -418,7 +420,7 @@ tbody tr.fila-accion { cursor: pointer; user-select: none; }
 .ficha-titulo::before { display: none; }
 .ficha-buscar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 16px 0 4px; }
 .ficha-buscar label { font-weight: 700; color: var(--pri-dark); }
-.ficha-buscar input { width: 110px; font-weight: 700; font-size: 16px; }
+.ficha-buscar input { width: 170px; font-weight: 700; font-size: 16px; }
 .ficha-cuerpo {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 280px;

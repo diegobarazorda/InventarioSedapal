@@ -206,6 +206,25 @@ r.get('/activos/opciones', wrap(async (_q, res) => {
   res.json({ notas: notas.map((n) => n.v), personal });
 }));
 
+// Busca un activo por su código de activo fijo y devuelve su N° correlativo para abrir la ficha.
+// Primero exacto; si no hay, por coincidencia parcial (solo si queda uno).
+r.get('/activos/buscar', wrap(async (req, res) => {
+  const af = texto(req.query.af);
+  if (!af) throw new HttpError(400, 'Escribe el código de activo fijo');
+  const ORDENADOS = `SELECT id, activo_fijo, denominacion, ROW_NUMBER() OVER (ORDER BY numero, id) AS orden
+    FROM activos_fijos`;
+  let [rows] = await pool.query(`SELECT * FROM (${ORDENADOS}) t WHERE activo_fijo = ? ORDER BY orden`, [af]);
+  if (!rows.length) {
+    [rows] = await pool.query(`SELECT * FROM (${ORDENADOS}) t WHERE activo_fijo LIKE ? ORDER BY orden LIMIT 6`, [`%${af}%`]);
+  }
+  if (!rows.length) throw new HttpError(404, `No existe el activo fijo ${af}`);
+  if (rows.length > 1 && rows[0].activo_fijo !== af) {
+    const lista = rows.slice(0, 5).map((r) => r.activo_fijo).join(', ');
+    throw new HttpError(409, `Hay varios activos que contienen "${af}" (${lista}${rows.length > 5 ? '…' : ''}). Escribe el código completo.`);
+  }
+  res.json({ orden: Number(rows[0].orden), activo_fijo: rows[0].activo_fijo });
+}));
+
 // Ficha: un activo por su N° correlativo (1, 2, 3…), con el total para navegar
 r.get('/activos/ficha/:n', wrap(async (req, res) => {
   const n = entero(req.params.n, 'El N°');
