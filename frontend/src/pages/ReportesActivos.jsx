@@ -3,7 +3,7 @@ import { get, urlExcel, useGet } from '../api.js';
 import { Field, Table } from '../ui.jsx';
 
 export default function ReportesActivos() {
-  const [p, setP] = useState({ verificado: '', responsable: '', nota: '', foto: '' });
+  const [p, setP] = useState({ verificado: '', baja: '', responsable: '', nota: '', foto: '' });
   const [res, setRes] = useState(null);
   const [err, setErr] = useState('');
   const opciones = useGet('/activos/opciones').data || { notas: [], personal: [] };
@@ -27,6 +27,11 @@ export default function ReportesActivos() {
             <Field label="Verificación">
               <select value={p.verificado} onChange={set('verificado')}>
                 <option value="">Todos</option><option value="SI">Verificados</option><option value="NO">Sin verificar</option>
+              </select>
+            </Field>
+            <Field label="Baja">
+              <select value={p.baja} onChange={set('baja')}>
+                <option value="">Todos</option><option value="SI">Dados de baja</option><option value="NO">Sin baja</option>
               </select>
             </Field>
             <Field label="Responsable">

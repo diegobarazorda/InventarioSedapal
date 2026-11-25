@@ -10,9 +10,13 @@ const izquierda = [
   ['modelo', 'Modelo', 100], ['ceco', 'CeCo', 20],
 ];
 const derecha = [
-  ['emplazamiento', 'Emplazamiento', 150], ['local', 'Local', 50], ['nro_personal', 'Nº pers. (ficha)', 20],
+  ['local', 'Local', 50], ['nro_personal', 'Nº pers. (ficha)', 20],
   ['nombre_personal', 'Nombre personal', 150], ['nota_inventario', 'Nota invent.', 100],
+  ['observacion', 'Observación', 500],
 ];
+const TEXTO_LARGO = ['denominacion', 'observacion'];
+const hoyISO = () => new Date().toLocaleDateString('en-CA');
+const fechaPeru = (iso) => (iso ? iso.split('-').reverse().join('/') : '—'); // AAAA-MM-DD -> DD/MM/AAAA
 const LISTAS = { nombre_personal: 'af-personal', nota_inventario: 'af-notas' };
 
 // Reduce la foto (las de celular pesan varios MB) a JPG de máx. 1600 px
@@ -148,7 +152,7 @@ export default function FichaActivo() {
     }
   }
 
-  const agregar = () => { setF({ ...VACIO, verificado: 'NO' }); setNuevo(true); setMsg(null); };
+  const agregar = () => { setF({ ...VACIO, verificado: 'NO', baja: 'NO', fecha_baja: '' }); setNuevo(true); setMsg(null); };
   const cancelar = () => { setF(null); setNuevo(false); setMsg(null); };
 
   async function eliminar() {
@@ -170,13 +174,16 @@ Esta acción no se puede deshacer.`)) return;
     <label key={k} className="ficha-dato">
       <span>{label}{editando && req ? ' *' : ''}</span>
       {editando
-        ? (k === 'denominacion'
+        ? (TEXTO_LARGO.includes(k)
           ? <textarea rows={3} value={f[k]} onChange={set(k)} maxLength={max} required={req} />
           : <input value={f[k]} onChange={set(k)} maxLength={max} required={req} list={LISTAS[k]} />)
         : <output>{a[k] || '—'}</output>}
     </label>
   );
   const verificado = editando ? f.verificado : a?.verificado;
+  const baja = editando ? f.baja : a?.baja;
+  // Al marcar Baja = NO se limpia la fecha
+  const marcarBaja = (v) => { if (editando) setF({ ...f, baja: v, fecha_baja: v === 'SI' ? f.fecha_baja : '' }); };
 
   return (
     <div className="ficha card">
@@ -216,6 +223,24 @@ Esta acción no se puede deshacer.`)) return;
                 ))}
               </div>
             </div>
+            <div className="ficha-dato">
+              <span>Baja</span>
+              <div className="sino baja" role="group" aria-label="Baja">
+                {['SI', 'NO'].map((op) => (
+                  <button key={op} type="button" aria-pressed={baja === op} disabled={!editando}
+                    className={baja === op ? 'on ' + op.toLowerCase() : ''}
+                    onClick={() => baja !== op && marcarBaja(op)}>{op}</button>
+                ))}
+              </div>
+            </div>
+            {baja === 'SI' && (
+              <label className="ficha-dato">
+                <span>Fecha de baja{editando ? ' *' : ''}</span>
+                {editando
+                  ? <input type="date" value={f.fecha_baja} max={hoyISO()} required onChange={set('fecha_baja')} />
+                  : <output>{fechaPeru(a.fecha_baja)}</output>}
+              </label>
+            )}
           </div>
           {nuevo ? (
             <div className="ficha-foto">

@@ -89,6 +89,14 @@ npm run importar-activos
 
 Para volver a cargar el Excel desde cero (borra N° de inventario y verificaciones guardadas): `npm run importar-activos -- --reemplazar`.
 
+Si la base ya tenía la tabla `activos_fijos` con la columna `emplazamiento`, actualizarla una sola vez (conserva los datos):
+
+```bash
+mysql -u TU_USUARIO -p inventario_sedapal < sql/migracion_observacion_baja.sql
+```
+
+Para pasar los activos a otra PC, `npm run exportar-activos` genera `sql/activos_fijos_completo.sql` (tabla + datos actuales, sin fotos).
+
 Iniciar el servidor:
 
 ```bash

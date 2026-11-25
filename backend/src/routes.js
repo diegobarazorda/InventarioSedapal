@@ -190,10 +190,20 @@ r.put('/productos/:id', wrap(async (req, res) => {
 
 /* ---------- activos fijos (registro AF del SAP) ---------- */
 const AF_COLS = `id, numero, activo_fijo, nro_inventario, denominacion, marca, serie, modelo, ceco,
-  emplazamiento, local, nro_personal, nombre_personal, nota_inventario, verificado`;
+  local, nro_personal, nombre_personal, nota_inventario, observacion, verificado, baja, fecha_baja`;
 const verificacion = (v) => {
   if (v !== 'SI' && v !== 'NO') throw new HttpError(400, 'La verificación debe ser SI o NO');
   return v;
+};
+// Baja SI exige fecha (no futura); baja NO deja la fecha vacía. Devuelve [baja, fecha_baja]
+const leerBaja = (b) => {
+  const baja = b.baja || 'NO';
+  if (baja !== 'SI' && baja !== 'NO') throw new HttpError(400, 'La baja debe ser SI o NO');
+  if (baja === 'NO') return ['NO', null];
+  const fecha = fechaISO(texto(b.fecha_baja));
+  if (!fecha) throw new HttpError(400, 'Indica la fecha de baja');
+  if (fecha > new Date().toLocaleDateString('en-CA')) throw new HttpError(400, 'La fecha de baja no puede ser futura');
+  return ['SI', fecha];
 };
 
 // Valores ya usados, para sugerir al editar la ficha y filtrar reportes
@@ -263,8 +273,8 @@ r.delete('/activos/:id/foto', wrap(async (req, res) => {
 // Edición completa de un activo fijo (todos los campos)
 const AF_EDITABLES = [
   ['activo_fijo', 30, 'El código de activo fijo es obligatorio'], ['nro_inventario', 50], ['denominacion', 255, 'La denominación es obligatoria'],
-  ['marca', 100], ['serie', 100], ['modelo', 100], ['ceco', 20], ['emplazamiento', 150], ['local', 50],
-  ['nro_personal', 20], ['nombre_personal', 150], ['nota_inventario', 100],
+  ['marca', 100], ['serie', 100], ['modelo', 100], ['ceco', 20], ['local', 50],
+  ['nro_personal', 20], ['nombre_personal', 150], ['nota_inventario', 100], ['observacion', 500],
 ];
 const leerActivo = (b) => AF_EDITABLES.map(([k, max, obligatorio]) => {
   const v = texto(b[k]);
@@ -278,9 +288,9 @@ r.post('/activos', wrap(async (req, res) => {
   const valores = leerActivo(req.body);
   const verif = verificacion(req.body.verificado || 'NO');
   const [ins] = await pool.query(
-    `INSERT INTO activos_fijos (numero, ${AF_EDITABLES.map(([k]) => k).join(', ')}, verificado)
-     SELECT COALESCE(MAX(numero), 0) + 1, ${AF_EDITABLES.map(() => '?').join(', ')}, ? FROM activos_fijos`,
-    [...valores, verif]);
+    `INSERT INTO activos_fijos (numero, ${AF_EDITABLES.map(([k]) => k).join(', ')}, verificado, baja, fecha_baja)
+     SELECT COALESCE(MAX(numero), 0) + 1, ${AF_EDITABLES.map(() => '?').join(', ')}, ?, ?, ? FROM activos_fijos`,
+    [...valores, verif, ...leerBaja(req.body)]);
   const [[{ orden }]] = await pool.query(
     `SELECT orden FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY numero, id) AS orden FROM activos_fijos) t
      WHERE id = ?`, [ins.insertId]);
@@ -300,8 +310,8 @@ r.put('/activos/:id', wrap(async (req, res) => {
   const valores = leerActivo(b);
   const numero = b.numero === '' || b.numero == null ? null : enteroNoNegativo(b.numero, 'El N°');
   const [upd] = await pool.query(
-    `UPDATE activos_fijos SET numero = ?, ${AF_EDITABLES.map(([k]) => `${k} = ?`).join(', ')}, verificado = ?
-     WHERE id = ?`, [numero, ...valores, verificacion(b.verificado), id]);
+    `UPDATE activos_fijos SET numero = ?, ${AF_EDITABLES.map(([k]) => `${k} = ?`).join(', ')}, verificado = ?,
+       baja = ?, fecha_baja = ? WHERE id = ?`, [numero, ...valores, verificacion(b.verificado), ...leerBaja(b), id]);
   if (!upd.affectedRows) throw new HttpError(404, 'El activo fijo no existe');
   const [[row]] = await pool.query(`SELECT ${AF_COLS} FROM activos_fijos WHERE id = ?`, [id]);
   res.json(row);
@@ -377,14 +387,16 @@ r.get('/dashboard', wrap(async (_q, res) => {
 /* ---------- reportes (JSON o Excel con ?formato=xlsx) ---------- */
 const COLS_ACTIVOS = [
   ['orden', 'N°'], ['activo_fijo', 'Activo fijo'], ['nro_inventario', 'N° inventario'], ['denominacion', 'Denominación'],
-  ['marca', 'Marca'], ['serie', 'Serie'], ['modelo', 'Modelo'], ['ceco', 'CeCo'], ['emplazamiento', 'Emplazamiento'],
+  ['marca', 'Marca'], ['serie', 'Serie'], ['modelo', 'Modelo'], ['ceco', 'CeCo'],
   ['local', 'Local'], ['nro_personal', 'Nº pers. (ficha)'], ['nombre_personal', 'Nombre personal'],
-  ['nota_inventario', 'Nota invent.'], ['verificado', 'Verificación'], ['foto', 'Foto'],
+  ['nota_inventario', 'Nota invent.'], ['observacion', 'Observación'], ['verificado', 'Verificación'],
+  ['baja', 'Baja'], ['fecha_baja', 'Fecha de baja'], ['foto', 'Foto'],
 ].map(([key, header]) => ({ key, header }));
 
 async function reporteActivos(q) {
   const w = ['1=1'], a = [];
   if (q.verificado === 'SI' || q.verificado === 'NO') { w.push('verificado = ?'); a.push(q.verificado); }
+  if (q.baja === 'SI' || q.baja === 'NO') { w.push('baja = ?'); a.push(q.baja); }
   if (q.responsable === '-') w.push('nombre_personal IS NULL');
   else if (texto(q.responsable)) { w.push('nombre_personal = ?'); a.push(texto(q.responsable)); }
   if (q.nota === '-') w.push('nota_inventario IS NULL');

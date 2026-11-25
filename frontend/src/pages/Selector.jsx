@@ -10,7 +10,7 @@ const opciones = [
   },
   {
     to: '/activos', icono: 'etiqueta', titulo: 'Inventario de activos fijos',
-    texto: 'Registro de activos fijos según SAP: N° de inventario, custodio, emplazamiento y verificación en campo.',
+    texto: 'Registro de activos fijos según SAP: N° de inventario, custodio, verificación en campo y bajas.',
   },
 ];
 

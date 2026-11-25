@@ -51,8 +51,9 @@ async function main() {
     if (!activo || !denominacion) continue;
     const numero = Number.isInteger(v[1]) ? v[1] : null;
     const nroPersonal = txt(v[10]) === '0' ? null : txt(v[10]); // 0 = sin custodio asignado
+    // v[8] (Descripción del emplazamiento) no se importa: repite el Local
     filas.push([
-      numero, activo, denominacion, txt(v[4]), txt(v[5]), txt(v[6]), txt(v[7]), txt(v[8]),
+      numero, activo, denominacion, txt(v[4]), txt(v[5]), txt(v[6]), txt(v[7]),
       txt(v[9]), nroPersonal, txt(v[11]), txt(v[12]),
     ]);
   }
@@ -60,7 +61,7 @@ async function main() {
   if (reemplazar) await pool.query('DELETE FROM activos_fijos');
   await pool.query(
     `INSERT INTO activos_fijos (numero, activo_fijo, denominacion, marca, serie, modelo, ceco,
-       emplazamiento, local, nro_personal, nombre_personal, nota_inventario) VALUES ?`, [filas]);
+       local, nro_personal, nombre_personal, nota_inventario) VALUES ?`, [filas]);
   console.log(`Importados ${filas.length} activos fijos desde ${path.basename(archivo)}.`);
 }
 
